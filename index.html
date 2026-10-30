@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f3efe6">
+<title>Vingerafdruk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+:root {
+  --bg: #f3efe6; --card: #fffdf8; --ink: #23201b; --ink-2: #57514a; --ink-3: #8a8279; --line: #e2dbcd; --accent: #8a2f2a; --accent-2: #b6463e;
+  --font: "IBM Plex Sans", system-ui, sans-serif; --serif: "IBM Plex Serif", Georgia, serif;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+#app { max-width: 1240px; margin: 0 auto; padding: calc(10px + env(safe-area-inset-top, 0)) 14px calc(24px + env(safe-area-inset-bottom, 0)); display: grid; gap: 16px; }
+@media (min-width: 900px) and (orientation: landscape) {
+  #app { grid-template-columns: minmax(380px, 520px) 1fr; align-items: start; }
+  #left { position: sticky; top: 12px; }
+}
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+h1 { font: 600 26px/1.1 var(--serif); margin: 4px 0; letter-spacing: -.01em; }
+header .sub { color: var(--ink-3); font-size: 13px; }
+#print { position: relative; aspect-ratio: 400 / 520; background: var(--card); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 0 var(--line), 0 10px 30px rgb(60 40 20 / .10); }
+#img canvas, #grow { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#grow { z-index: 2; }
+#print.growing #ov { opacity: 0; }
+#ov { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; transition: opacity .3s; }
+.ov-veld line { stroke: #1f8a70; stroke-width: 1.3; stroke-linecap: round; opacity: .8; }
+.m .hit { fill: transparent; stroke: none; cursor: pointer; }
+.einde line, .einde circle { stroke: #d6332b; fill: none; stroke-width: 1.8; }
+.splitsing line, .splitsing rect { stroke: #2459d8; fill: none; stroke-width: 1.8; }
+.eiland path { stroke: #128a3e; fill: rgb(18 138 62 / .15); stroke-width: 1.8; }
+.meer ellipse { stroke: #8a3fc7; fill: none; stroke-width: 1.8; }
+.kern circle { stroke: #c2185b; fill: rgb(194 24 91 / .12); stroke-width: 2.4; }
+.kern .dot { fill: #c2185b; stroke: none; }
+.delta path { stroke: #e07b00; fill: rgb(224 123 0 / .15); stroke-width: 2.4; stroke-linejoin: round; }
+.ov-tel line { stroke: #23201b; stroke-width: 1.6; stroke-dasharray: 5 4; }
+.ov-tel rect { fill: #23201b; }
+.ov-tel text { fill: #fff; font: 600 13px var(--font); text-anchor: middle; }
+#status { position: absolute; left: 12px; bottom: 10px; z-index: 4; font-size: 13px; color: var(--ink-2); background: rgb(255 253 248 / .85); padding: 2px 8px; border-radius: 6px; }
+#status:empty { display: none; }
+#tip { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 5; background: var(--card); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 30px rgb(0 0 0 / .18); font-size: 14px; }
+#tip b { font-family: var(--serif); font-size: 16px; }
+#tip p { margin: 4px 0 0; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.btn { border: 0; border-radius: 10px; padding: 10px 14px; min-height: 44px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 7px; }
+.btn svg { width: 18px; height: 18px; fill: currentColor; }
+.btn.main { background: var(--accent); color: #fff; box-shadow: none; }
+.btn:disabled { opacity: .5; }
+.seedbox { display: inline-flex; align-items: center; gap: 0; margin-left: auto; }
+.seedbox input { width: 96px; padding: 9px 10px; border: 1px solid var(--line); border-right: 0; border-radius: 10px 0 0 10px; background: var(--card); font-variant-numeric: tabular-nums; min-height: 44px; }
+.seedbox button { border-radius: 0 10px 10px 0; }
+.controls { display: grid; gap: 10px; margin-top: 14px; }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.row > label { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); width: 92px; flex: none; }
+select { flex: 1; min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); min-height: 42px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.chips button { border: 0; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); border-radius: 999px; padding: 7px 12px; min-height: 36px; font-size: 13.5px; color: var(--ink-2); }
+.chips button.on { background: var(--ink); color: #fff; box-shadow: none; }
+.card { background: var(--card); border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 0 var(--line); margin-bottom: 12px; }
+.card h2 { font: 600 19px/1.25 var(--serif); margin: 0 0 6px; }
+.card p { margin: 6px 0; }
+.mut { color: var(--ink-3); font-size: 13.5px; }
+table.mt { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 14px; }
+.mt td { padding: 6px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.mt td:nth-child(3) { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.mt td:nth-child(2) { white-space: nowrap; font-weight: 500; }
+.mt .tot td { border-bottom: 0; font-weight: 600; }
+@media (max-width: 520px) { .mt td:nth-child(4) { display: none; } }
+.sym { display: inline-block; width: 14px; height: 14px; margin-top: 3px; }
+.sym.einde { border: 2px solid #d6332b; border-radius: 50%; }
+.sym.splitsing { border: 2px solid #2459d8; }
+.sym.punt, .sym.korte-rif { border: 2px solid #128a3e; transform: rotate(45deg) scale(.8); }
+.sym.meertje { border: 2px solid #8a3fc7; border-radius: 50%; }
+dialog { border: 0; border-radius: 16px; padding: 16px; width: min(1100px, calc(100vw - 20px)); max-height: 92vh; background: var(--card); color: var(--ink); }
+dialog::backdrop { background: rgb(30 20 10 / .5); }
+dialog h3 { font: 600 20px var(--serif); margin: 0 0 10px; }
+#toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0)); transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px; font-weight: 600; z-index: 50; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="left">
+    <header><div><h1>Vingerafdruk</h1><div class="sub">verzonnen afdrukken, uitgelegd</div></div></header>
+    <div id="print"><div id="img"></div><canvas id="grow" hidden></canvas><svg id="ov" xmlns="http://www.w3.org/2000/svg"></svg><div id="status"></div><div id="tip" hidden></div></div>
+    <div class="actions">
+      <button class="btn main" id="newBtn"><svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z"/></svg>Nieuwe afdruk</button>
+      <button class="btn" id="saveBtn"><svg viewBox="0 0 24 24"><path d="M11 4h2v9.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6zM5 18h14v2H5z"/></svg>Opslaan</button>
+      <button class="btn" id="cardBtn"><svg viewBox="0 0 24 24"><path d="M3 5h18v14H3zm2 2v4h3V7zm5 0v4h4V7zm6 0v4h3V7zM5 13v4h3v-4zm5 0v4h4v-4zm6 0v4h3v-4z"/></svg>Tienvingerkaart</button>
+      <span class="seedbox"><input id="seed" inputmode="numeric" aria-label="Nummer"><button class="btn" id="seedGo">Toon</button></span>
+    </div>
+    <div class="controls">
+      <div class="row"><label>Patroon</label><select id="patSel"></select></div>
+      <div class="row"><label>Vinger</label><select id="handSel"></select><select id="fingerSel"></select></div>
+      <div class="row"><label>Minutiae</label><div class="chips" id="minChips"></div></div>
+      <div class="row"><label>Afdruk</label><div class="chips" id="styleChips"></div></div>
+      <div class="row"><label>Tonen</label><div class="chips" id="ovChips"></div></div>
+    </div>
+  </div>
+  <div id="explain"></div>
+</div>
+<dialog id="card"><h3>Tienvingerkaart</h3><div id="cardBody"></div><div class="actions" style="justify-content:flex-end"><button class="btn" id="cardClose">Sluiten</button><button class="btn main" id="cardSave">Opslaan</button></div></dialog>
+<div id="toast" hidden></div>
+<script>/* Vingerafdruk: the plan of a fingerprint before any ridge exists.
+   Shape of the fingertip, the pattern class with its cores and deltas, the ridge orientation field (the zero-pole
+   model of Sherlock and Monro, bent along the fingertip at the top) and the ridge spacing. */
+"use strict";
+
+const W = 400, H = 520;
+
+// small seeded random generator (mulberry32), so a number always gives the same print
+function rng(seed) {
+  let a = seed >>> 0;
+  const r = () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  r.range = (lo, hi) => lo + (hi - lo) * r();
+  r.int = (lo, hi) => Math.floor(lo + (hi - lo + 1) * r());
+  r.pick = (arr) => arr[Math.floor(r() * arr.length)];
+  r.gauss = () => { let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  return r;
+}
+
+// smooth value noise on a coarse grid, bicubic-ish (smoothstep) interpolation, values about -1..1
+function noiseField(r, cell, w = W, h = H) {
+  const gw = Math.ceil(w / cell) + 2, gh = Math.ceil(h / cell) + 2, g = new Float32Array(gw * gh);
+  for (let i = 0; i < g.length; i++) g[i] = r() * 2 - 1;
+  const s = (t) => t * t * (3 - 2 * t);
+  return (x, y) => {
+    const fx = x / cell, fy = y / cell, ix = Math.floor(fx), iy = Math.floor(fy), tx = s(fx - ix), ty = s(fy - iy);
+    const at = (i, j) => g[Math.min(gh - 1, Math.max(0, j)) * gw + Math.min(gw - 1, Math.max(0, i))];
+    const a = at(ix, iy) + (at(ix + 1, iy) - at(ix, iy)) * tx;
+    const b = at(ix, iy + 1) + (at(ix + 1, iy + 1) - at(ix, iy + 1)) * tx;
+    return a + (b - a) * ty;
+  };
+}
+
+const PATTERNS = {
+  boog: { name: "Boog", group: "boog" },
+  tentboog: { name: "Tentboog", group: "boog" },
+  lusL: { name: "Lus (opent naar links)", group: "lus" },
+  lusR: { name: "Lus (opent naar rechts)", group: "lus" },
+  krul: { name: "Krul", group: "krul" },
+  dubbel: { name: "Dubbele lus", group: "krul" },
+};
+const FINGERS = ["duim", "wijsvinger", "middelvinger", "ringvinger", "pink"];
+// rough chances per finger used by this app: [arch, tented arch, ulnar loop, radial loop, whorl, double loop]
+const FINGER_ODDS = {
+  duim: [0.03, 0.01, 0.5, 0.02, 0.34, 0.1],
+  wijsvinger: [0.08, 0.07, 0.3, 0.17, 0.3, 0.08],
+  middelvinger: [0.05, 0.02, 0.65, 0.02, 0.22, 0.04],
+  ringvinger: [0.02, 0.01, 0.48, 0.01, 0.42, 0.06],
+  pink: [0.01, 0.01, 0.82, 0.01, 0.13, 0.02],
+};
+// on the print of a right hand the little-finger side is on the right, so an ulnar loop opens to the right
+const loopFor = (hand, kind) => ((hand === "rechts") === (kind === "ulnair") ? "lusR" : "lusL");
+function pickPattern(r, hand, finger) {
+  const odds = FINGER_ODDS[finger], keys = ["boog", "tentboog", "ulnair", "radiaal", "krul", "dubbel"];
+  let x = r() * odds.reduce((a, b) => a + b, 0), k = 0;
+  while (x > odds[k] && k < odds.length - 1) x -= odds[k++];
+  const key = keys[k];
+  return key === "ulnair" || key === "radiaal" ? { pattern: loopFor(hand, key), loopKind: key } : { pattern: key, loopKind: null };
+}
+
+/* Builds the plan. opts: { seed, pattern (or "auto"), hand, finger, minutiae: "weinig"|"normaal"|"veel" } */
+function makePlan(opts) {
+  const r = rng(opts.seed);
+  const hand = opts.hand === "auto" ? r.pick(["links", "rechts"]) : opts.hand;
+  const finger = opts.finger === "auto" ? r.pick(FINGERS) : opts.finger;
+  let pattern = opts.pattern, loopKind = null;
+  if (pattern === "auto") ({ pattern, loopKind } = pickPattern(r, hand, finger));
+  else if (pattern === "ulnair" || pattern === "radiaal") { loopKind = pattern; pattern = loopFor(hand, loopKind); }
+  else if (pattern === "lusL" || pattern === "lusR") loopKind = (pattern === "lusR") === (hand === "rechts") ? "ulnair" : "radiaal";
+
+  // fingertip outline: rounder at the top, flatter towards the first joint
+  const cx = W / 2 + r.range(-8, 8), cy = H * 0.53 + r.range(-6, 6);
+  const shape = { cx, cy, a: r.range(150, 172), bt: r.range(212, 240), bb: r.range(175, 205), nt: r.range(2.0, 2.4), nb: r.range(2.8, 3.8) };
+  const rad = (x, y) => { const dx = Math.abs(x - shape.cx) / shape.a, dy = y - shape.cy; const b = dy < 0 ? shape.bt : shape.bb, n = dy < 0 ? shape.nt : shape.nb; return Math.pow(Math.pow(dx, n) + Math.pow(Math.abs(dy) / b, n), 1 / n); };
+
+  // singular points
+  const cores = [], deltas = [];
+  const P = (dx, dy) => ({ x: cx + dx, y: cy + dy });
+  if (pattern === "tentboog") {
+    const c = P(r.range(-15, 15), r.range(-25, 5));
+    cores.push(c); deltas.push({ x: c.x + r.range(-8, 8), y: c.y + r.range(55, 80) });
+  } else if (pattern === "lusL" || pattern === "lusR") {
+    const s = pattern === "lusR" ? -1 : 1; // the delta lies on the side opposite to the opening
+    const c = P(r.range(-18, 18) - s * 15, r.range(-45, -5));
+    cores.push(c); deltas.push({ x: c.x + s * r.range(95, 135), y: c.y + r.range(85, 125) });
+  } else if (pattern === "krul") {
+    const c = P(r.range(-12, 12), r.range(-35, -10));
+    cores.push(c, { x: c.x + r.range(-10, 10), y: c.y + r.range(16, 28) });
+    deltas.push(P(-r.range(110, 135), r.range(75, 110)), P(r.range(110, 135), r.range(75, 110)));
+  } else if (pattern === "dubbel") {
+    const s = r() < 0.5 ? 1 : -1, c = P(r.range(-10, 10), r.range(-30, -10)), d = r.range(26, 36);
+    cores.push({ x: c.x - s * d * 0.8, y: c.y - d * 0.6 }, { x: c.x + s * d * 0.8, y: c.y + d * 0.6 });
+    deltas.push(P(-r.range(110, 135), r.range(80, 115)), P(r.range(110, 135), r.range(80, 115)));
+  }
+
+  // orientation field, stored as doubled-angle vectors (cos 2θ, sin 2θ)
+  const n1 = noiseField(r, 90), n2 = noiseField(r, 140), n3 = noiseField(r, 70);
+  const archA = r.range(55, 85), archW = r.range(95, 130), archY = cy + r.range(-10, 40);
+  const cos2 = new Float32Array(W * H), sin2 = new Float32Array(W * H), period = new Float32Array(W * H), mask = new Float32Array(W * H);
+  const P0 = r.range(8.4, 10.2);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    let th;
+    if (!cores.length) {
+      // plain arch: the flow lines are bumps y = c - A exp(-x²/w²), highest in the middle of the finger
+      const dx = x - cx, A = archA * Math.exp(-Math.pow((y - archY) / 170, 2));
+      th = Math.atan(2 * A * dx / (archW * archW) * Math.exp(-dx * dx / (archW * archW)));
+    } else {
+      th = 0;
+      for (const c of cores) th += 0.5 * Math.atan2(y - c.y, x - c.x);
+      for (const d of deltas) th -= 0.5 * Math.atan2(y - d.y, x - d.x);
+    }
+    th += 0.1 * n1(x, y) + 0.05 * n3(x, y);
+    let c2 = Math.cos(2 * th), s2 = Math.sin(2 * th);
+    // near the top and sides the ridges follow the round fingertip
+    const dx = x - cx, dy = y - cy, rr = rad(x, y);
+    const up = Math.min(1, Math.max(0, (-dy / shape.bt + 0.15) / 0.5));
+    const wgt = up * Math.min(1, Math.max(0, (rr - 0.5) / 0.4));
+    if (wgt > 0) {
+      const b = shape.bt, ph = Math.atan2(-dx / (shape.a * shape.a), dy / (b * b));
+      const tc = Math.cos(2 * ph), ts = Math.sin(2 * ph);
+      c2 = c2 * (1 - wgt) + tc * wgt; s2 = s2 * (1 - wgt) + ts * wgt;
+      const l = Math.hypot(c2, s2) || 1; c2 /= l; s2 /= l;
+    }
+    cos2[i] = c2; sin2[i] = s2;
+    // ridge spacing: slightly wider around the core, a little variation everywhere
+    let p = P0 + 0.7 * n2(x, y);
+    for (const c of cores) p += 0.8 * Math.exp(-((x - c.x) ** 2 + (y - c.y) ** 2) / (2 * 70 * 70));
+    period[i] = Math.max(6.5, Math.min(13, p));
+    mask[i] = rr;
+  }
+  const dens = { weinig: 0.6, normaal: 1, veel: 1.8 }[opts.minutiae || "normaal"];
+  return { seed: opts.seed, hand, finger, pattern, loopKind, shape, cores, deltas, cos2, sin2, period, rad: mask, P0, dens, r };
+}
+if (typeof module !== "undefined") module.exports = { W, H, rng, makePlan, PATTERNS, FINGERS, FINGER_ODDS };
+</script>
+<script>/* Vingerafdruk: growing the ridges.
+   Start with a few random specks and filter them over and over with a Gabor filter that follows the local ridge
+   direction and spacing (as in SFinGe, Cappelli, Maio and Maltoni). The specks grow into ridges; where two growing
+   ridge systems meet out of step, ridge endings and bifurcations appear by themselves.
+   Runs on the GPU with WebGL; a slower CPU version takes over when WebGL is missing. */
+"use strict";
+
+const Gabor = (() => {
+  const ITER = 34;
+  const VERT = "attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }";
+  const STEP = `precision highp float;
+uniform sampler2D state, field;
+uniform vec2 size;
+uniform float gain;
+void main() {
+  vec2 px = gl_FragCoord.xy;
+  vec4 f = texture2D(field, px / size);
+  float th = 0.5 * atan(f.g * 2.0 - 1.0, f.r * 2.0 - 1.0);
+  float P = 4.0 + f.b * 16.0;
+  vec2 t = vec2(cos(th), sin(th)), n = vec2(-t.y, t.x);
+  float sn = P * 0.40, st = P * 0.55;
+  float acc = 0.0, wsum = 0.0;
+  for (int j = -6; j <= 6; j++) for (int i = -6; i <= 6; i++) {
+    vec2 d = vec2(float(i), float(j));
+    float a = dot(d, n), b = dot(d, t);
+    float g = exp(-a * a / (2.0 * sn * sn) - b * b / (2.0 * st * st)) * cos(6.2831853 * a / P);
+    acc += g * (texture2D(state, (px + d) / size).r * 2.0 - 1.0);
+    wsum += abs(g);
+  }
+  float v = clamp(acc / wsum * gain, -1.0, 1.0);
+  gl_FragColor = vec4(v * 0.5 + 0.5, 0.0, 0.0, 1.0);
+}`;
+  // shows the growing state while the GPU works (flipped, because GL rows run bottom-up)
+  const SHOW = `precision mediump float;
+uniform sampler2D state; uniform vec2 size;
+void main() { vec2 uv = vec2(gl_FragCoord.x / size.x, 1.0 - gl_FragCoord.y / size.y); float v = texture2D(state, uv).r; gl_FragColor = vec4(vec3(1.0 - smoothstep(0.45, 0.7, v) * 0.85), 1.0); }`;
+
+  let gl = null, progs = null, buf = null, cv = null;
+  function initGL(canvas) {
+    if (gl) return gl;
+    cv = canvas;
+    gl = canvas.getContext("webgl", { preserveDrawingBuffer: true, antialias: false }) || canvas.getContext("experimental-webgl");
+    if (!gl) return null;
+    const prog = (fs) => {
+      const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+      const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VERT)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      return p;
+    };
+    try {
+      // some phones only offer mediump; then fall back to the CPU
+      const hp = gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT);
+      if (!hp || hp.precision < 16) throw new Error("geen highp");
+      progs = { step: prog(STEP), show: prog(SHOW) };
+    } catch (e) { gl = null; return null; }
+    buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    return gl;
+  }
+  function tex(w, h, data) {
+    const t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    return t;
+  }
+  function draw(p) {
+    const loc = gl.getAttribLocation(p, "p");
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+
+  // the starting specks
+  function seeds(plan) {
+    const r = plan.r, out = new Float32Array(W * H);
+    const n = Math.round(plan.dens * W * H / 1500);
+    for (let k = 0; k < n; k++) {
+      const x = r.int(4, W - 5), y = r.int(4, H - 5), v = r() < 0.5 ? -1 : 1;
+      for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) out[(y + j) * W + x + i] = v;
+    }
+    for (let i = 0; i < out.length; i++) out[i] += (r() - 0.5) * 0.04 * plan.dens;
+    return out;
+  }
+
+  // grows the ridges; onStep(k, total) is called as it goes. Returns Float32Array of -1..1 (ridge > 0)
+  async function grow(plan, canvas, onStep) {
+    const init = seeds(plan);
+    if (canvas && initGL(canvas)) return growGPU(plan, init, onStep);
+    return growCPU(plan, init, onStep);
+  }
+  async function growGPU(plan, init, onStep) {
+    cv.width = W; cv.height = H;
+    const fieldData = new Uint8Array(W * H * 4), st = new Uint8Array(W * H * 4);
+    for (let i = 0; i < W * H; i++) {
+      fieldData[i * 4] = Math.round((plan.cos2[i] + 1) * 127.5);
+      fieldData[i * 4 + 1] = Math.round((plan.sin2[i] + 1) * 127.5);
+      fieldData[i * 4 + 2] = Math.round(Math.max(0, Math.min(1, (plan.period[i] - 4) / 16)) * 255);
+      fieldData[i * 4 + 3] = 255;
+      st[i * 4] = Math.round((Math.max(-1, Math.min(1, init[i])) + 1) * 127.5); st[i * 4 + 3] = 255;
+    }
+    const field = tex(W, H, fieldData);
+    const t = [tex(W, H, st), tex(W, H, null)];
+    const fb = gl.createFramebuffer();
+    gl.viewport(0, 0, W, H);
+    for (let k = 0; k < ITER; k++) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t[1], 0);
+      gl.useProgram(progs.step);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, t[0]);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, field);
+      gl.uniform1i(gl.getUniformLocation(progs.step, "state"), 0);
+      gl.uniform1i(gl.getUniformLocation(progs.step, "field"), 1);
+      gl.uniform2f(gl.getUniformLocation(progs.step, "size"), W, H);
+      gl.uniform1f(gl.getUniformLocation(progs.step, "gain"), k < 4 ? 6 : 3.2);
+      draw(progs.step);
+      t.reverse();
+      if (k % 2 === 1 || k === ITER - 1) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.useProgram(progs.show);
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, t[0]);
+        gl.uniform1i(gl.getUniformLocation(progs.show, "state"), 0);
+        gl.uniform2f(gl.getUniformLocation(progs.show, "size"), W, H);
+        draw(progs.show);
+        if (onStep) onStep(k + 1, ITER);
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t[0], 0);
+    const px = new Uint8Array(W * H * 4);
+    gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteTexture(field); gl.deleteTexture(t[0]); gl.deleteTexture(t[1]); gl.deleteFramebuffer(fb);
+    const out = new Float32Array(W * H);
+    for (let i = 0; i < W * H; i++) out[i] = px[i * 4] / 127.5 - 1;
+    return out;
+  }
+
+  // CPU: kernels for 24 directions and 9 spacings, made once
+  let kernels = null;
+  const NA = 24, PERIODS = [6.5, 7.3, 8.1, 8.9, 9.7, 10.5, 11.3, 12.1, 13], KR = 5;
+  function makeKernels() {
+    kernels = [];
+    for (let a = 0; a < NA; a++) for (const P of PERIODS) {
+      const th = (a / NA) * Math.PI, t = [Math.cos(th), Math.sin(th)], n = [-t[1], t[0]];
+      const sn = P * 0.4, st = P * 0.55, k = new Float32Array((2 * KR + 1) ** 2);
+      let s = 0;
+      for (let j = -KR; j <= KR; j++) for (let i = -KR; i <= KR; i++) {
+        const A = i * n[0] + j * n[1], B = i * t[0] + j * t[1];
+        const g = Math.exp(-A * A / (2 * sn * sn) - B * B / (2 * st * st)) * Math.cos(2 * Math.PI * A / P);
+        k[(j + KR) * (2 * KR + 1) + i + KR] = g; s += Math.abs(g);
+      }
+      for (let q = 0; q < k.length; q++) k[q] /= s;
+      kernels.push(k);
+    }
+  }
+  async function growCPU(plan, init, onStep) {
+    if (!kernels) makeKernels();
+    const idx = new Uint16Array(W * H);
+    for (let i = 0; i < W * H; i++) {
+      let th = 0.5 * Math.atan2(plan.sin2[i], plan.cos2[i]); if (th < 0) th += Math.PI;
+      const a = Math.round(th / Math.PI * NA) % NA;
+      let p = 0, best = 99; PERIODS.forEach((v, k) => { const d = Math.abs(v - plan.period[i]); if (d < best) { best = d; p = k; } });
+      idx[i] = a * PERIODS.length + p;
+    }
+    let a = Float32Array.from(init), b = new Float32Array(W * H);
+    const S = 2 * KR + 1, iters = 26;
+    for (let k = 0; k < iters; k++) {
+      const gain = k < 4 ? 6 : 3.2;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const ker = kernels[idx[y * W + x]];
+        let acc = 0;
+        for (let j = -KR; j <= KR; j++) {
+          const yy = Math.min(H - 1, Math.max(0, y + j)) * W, kr = (j + KR) * S + KR;
+          for (let i = -KR; i <= KR; i++) acc += ker[kr + i] * a[yy + Math.min(W - 1, Math.max(0, x + i))];
+        }
+        const v = acc * gain;
+        b[y * W + x] = v > 1 ? 1 : v < -1 ? -1 : v;
+      }
+      [a, b] = [b, a];
+      if (onStep) onStep(k + 1, iters, a);
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    return a;
+  }
+  return { grow, get gpu() { return !!gl; } };
+})();
+</script>
+<script>/* Vingerafdruk: reading the finished print like an examiner would.
+   Thins the ridges to one-pixel lines (Zhang-Suen), finds minutiae with the crossing number (1 = ridge ending,
+   3 = bifurcation), removes the usual false ones (spurs, bridges, broken ridges), recognises dots, short ridges and
+   enclosures, counts the ridges between core and delta, and places sweat pores along the ridges. */
+"use strict";
+
+function analyze(plan, v) {
+  const N = W * H, inside = new Uint8Array(N), bin = new Uint8Array(N);
+  for (let i = 0; i < N; i++) { inside[i] = plan.rad[i] < 0.97 ? 1 : 0; bin[i] = inside[i] && v[i] > 0 ? 1 : 0; }
+  // distance (in pixels, roughly) from the edge of the print, to ignore minutiae made by the cut-off border
+  const edge = new Float32Array(N);
+  for (let i = 0; i < N; i++) { const r = plan.rad[i]; edge[i] = (1 - r) * 160; }
+
+  /* ---------- thinning ---------- */
+  const sk = bin.slice();
+  const at = (a, x, y) => (x < 0 || y < 0 || x >= W || y >= H ? 0 : a[y * W + x]);
+  let changed = true, guard = 0;
+  const del = [];
+  while (changed && guard++ < 40) {
+    changed = false;
+    for (let pass = 0; pass < 2; pass++) {
+      del.length = 0;
+      for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+        const i = y * W + x;
+        if (!sk[i]) continue;
+        const p2 = sk[i - W], p3 = sk[i - W + 1], p4 = sk[i + 1], p5 = sk[i + W + 1], p6 = sk[i + W], p7 = sk[i + W - 1], p8 = sk[i - 1], p9 = sk[i - W - 1];
+        const B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9;
+        if (B < 2 || B > 6) continue;
+        const A = (!p2 && p3) + (!p3 && p4) + (!p4 && p5) + (!p5 && p6) + (!p6 && p7) + (!p7 && p8) + (!p8 && p9) + (!p9 && p2);
+        if (A !== 1) continue;
+        if (pass === 0 ? (p2 * p4 * p6 || p4 * p6 * p8) : (p2 * p4 * p8 || p2 * p6 * p8)) continue;
+        del.push(i);
+      }
+      if (del.length) { changed = true; for (const i of del) sk[i] = 0; }
+    }
+  }
+
+  /* ---------- crossing number ---------- */
+  const NB = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]];
+  const cn = (x, y) => { let c = 0; for (let k = 0; k < 8; k++) { const a = at(sk, x + NB[k][0], y + NB[k][1]), b = at(sk, x + NB[(k + 1) % 8][0], y + NB[(k + 1) % 8][1]); if (!a && b) c++; } return c; };
+  const nbrs = (x, y) => { const o = []; for (const [dx, dy] of NB) if (at(sk, x + dx, y + dy)) o.push([x + dx, y + dy]); return o; };
+  let raw = [];
+  const dots = [];
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    const i = y * W + x;
+    if (!sk[i]) continue;
+    const c = cn(x, y);
+    if (c === 1 || c === 3) raw.push({ x, y, type: c === 1 ? "einde" : "splitsing", edge: edge[i] });
+    else if (c === 0 && edge[i] > 14 && !nbrs(x, y).length) dots.push({ x, y, type: "punt", len: 1 });
+  }
+  // follows the skeleton from (x,y) for up to n steps; returns the path
+  function trace(x, y, n, avoid) {
+    const path = [[x, y]], seen = new Set([y * W + x]);
+    if (avoid) for (const a of avoid) seen.add(a);
+    let cx = x, cy = y;
+    for (let s = 0; s < n; s++) {
+      const next = nbrs(cx, cy).filter(([a, b]) => !seen.has(b * W + a));
+      if (next.length !== 1) { path.stop = next.length ? "splitsing" : "einde"; break; }
+      [cx, cy] = next[0]; seen.add(cy * W + cx); path.push([cx, cy]);
+    }
+    return path;
+  }
+  const key = (m) => m.y * W + m.x;
+  const byKey = new Map(raw.map((m) => [key(m), m]));
+  const drop = new Set();
+  const P = plan.P0;
+  // spurs: an ending that reaches a bifurcation within a short distance
+  for (const m of raw) if (m.type === "einde") {
+    const p = trace(m.x, m.y, Math.round(P * 0.9));
+    const end = p[p.length - 1];
+    if (p.stop === "splitsing" || cn(end[0], end[1]) === 3) {
+      drop.add(key(m));
+      for (const [dx, dy] of [[0, 0], ...NB]) { const k = (end[1] + dy) * W + end[0] + dx; if (byKey.has(k) && byKey.get(k).type === "splitsing") drop.add(k); }
+    }
+  }
+  // bridges and skeleton knots: bifurcations that sit almost on top of each other
+  const bif = raw.filter((m) => m.type === "splitsing");
+  for (let i = 0; i < bif.length; i++) for (let j = i + 1; j < bif.length; j++) if (Math.hypot(bif[i].x - bif[j].x, bif[i].y - bif[j].y) < P * 0.45) { drop.add(key(bif[i])); drop.add(key(bif[j])); }
+  // short pieces of ridge: dots and short ridges (both ends within a short trace)
+  const islands = dots.slice();
+  const seenIsland = new Set();
+  for (const m of raw) if (m.type === "einde" && !drop.has(key(m)) && !seenIsland.has(key(m))) {
+    const p = trace(m.x, m.y, Math.round(P * 3.2));
+    if (p.stop === "einde") {
+      const e = p[p.length - 1], k2 = e[1] * W + e[0];
+      seenIsland.add(key(m)); seenIsland.add(k2);
+      drop.add(key(m)); drop.add(k2);
+      const len = p.length, mid = p[Math.floor(len / 2)];
+      if (m.edge > P * 1.5) islands.push({ x: mid[0], y: mid[1], type: len < P * 0.9 ? "punt" : "korte rif", len, path: p });
+    }
+  }
+  let minutiae = raw.filter((m) => !drop.has(key(m)) && m.edge > P * 1.6);
+  // ridge breaks: two endings facing each other a short distance apart are one interrupted ridge, not two endings
+  const ends = minutiae.filter((m) => m.type === "einde");
+  const brk = new Set();
+  for (let i = 0; i < ends.length; i++) for (let j = i + 1; j < ends.length; j++) if (Math.hypot(ends[i].x - ends[j].x, ends[i].y - ends[j].y) < P * 0.55) { brk.add(ends[i]); brk.add(ends[j]); }
+  minutiae = minutiae.filter((m) => !brk.has(m));
+  // direction: along the ridge, pointing away from the ridge for endings
+  for (const m of minutiae) {
+    let th = 0.5 * Math.atan2(plan.sin2[key(m)], plan.cos2[key(m)]);
+    if (m.type === "einde") {
+      const p = trace(m.x, m.y, 8), e = p[p.length - 1];
+      if (p.length > 3) th = Math.atan2(m.y - e[1], m.x - e[0]);
+    } else {
+      // the direction in which the fork opens
+      const branches = nbrs(m.x, m.y).map(([a, b]) => trace(a, b, 8, [key(m)])).filter((p) => p.length > 3).map((p) => { const e = p[p.length - 1]; return Math.atan2(e[1] - m.y, e[0] - m.x); });
+      if (branches.length >= 2) {
+        // the stem is the branch most opposite the other two; the fork opens away from the stem
+        let best = 0, bs = -9;
+        branches.forEach((a, k) => { let s = 0; branches.forEach((b, l) => { if (l !== k) s -= Math.cos(a - b); }); if (s > bs) { bs = s; best = k; } });
+        th = branches[best] + Math.PI;
+      }
+    }
+    m.angle = th;
+  }
+  // enclosures (lakes): small valleys completely surrounded by ridge
+  const lakes = [];
+  const lab = new Int32Array(N);
+  let id = 0;
+  for (let i = 0; i < N; i++) {
+    if (!inside[i] || bin[i] || lab[i]) continue;
+    id++;
+    const st = [i]; lab[i] = id;
+    let n = 0, sx = 0, sy = 0, open = false;
+    while (st.length) {
+      const k = st.pop(), x = k % W, y = (k - x) / W;
+      n++; sx += x; sy += y;
+      if (edge[k] < P * 1.2) open = true;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) { open = true; continue; }
+        const q = yy * W + xx;
+        if (!inside[q]) { open = true; continue; }
+        if (!bin[q] && !lab[q]) { lab[q] = id; st.push(q); }
+      }
+      if (n > 4000) open = true;
+    }
+    if (!open && n < P * P * 3.5 && n > 6) lakes.push({ x: sx / n, y: sy / n, type: "meertje", area: n });
+  }
+  // a lake leaves two bifurcations on the skeleton; leave those out so they are not counted twice
+  for (const l of lakes) minutiae = minutiae.filter((m) => !(m.type === "splitsing" && Math.hypot(m.x - l.x, m.y - l.y) < P * 1.1));
+
+  /* ---------- ridge count between core and delta (Galton) ---------- */
+  const counts = [];
+  for (const c of plan.cores) for (const d of plan.deltas) {
+    const n = Math.ceil(Math.hypot(d.x - c.x, d.y - c.y));
+    let cnt = 0, prev = null, run = 0;
+    for (let s = 0; s <= n; s++) {
+      const x = Math.round(c.x + (d.x - c.x) * s / n), y = Math.round(c.y + (d.y - c.y) * s / n);
+      const b = at(bin, x, y);
+      if (b === prev) run++; else { if (prev === 1 && run >= 2 && s > 3) cnt++; prev = b; run = 1; }
+    }
+    counts.push({ core: c, delta: d, count: Math.max(0, cnt - 1) });
+  }
+  // for loops only one count matters: the nearest core to the delta
+  const ridgeCounts = plan.pattern === "krul" || plan.pattern === "dubbel" ? counts.filter((c, k, all) => all.filter((o) => o.delta === c.delta).every((o) => Math.hypot(o.core.x - o.delta.x, o.core.y - o.delta.y) >= Math.hypot(c.core.x - c.delta.x, c.core.y - c.delta.y))) : counts;
+
+  /* ---------- sweat pores along the ridges ---------- */
+  const pores = [];
+  const r = rng(plan.seed ^ 0x5bd1e995);
+  let skLen = 0;
+  for (let y = 2; y < H - 2; y += 1) for (let x = 2; x < W - 2; x++) {
+    const i = y * W + x;
+    if (!sk[i] || edge[i] < 6) continue;
+    skLen++;
+    if (r() < 1 / 13) pores.push({ x: x + (r() - 0.5) * 0.8, y: y + (r() - 0.5) * 0.8, s: 0.7 + r() * 0.6 });
+  }
+  // thin out pores that crowd together
+  const kept = [];
+  const grid = new Map();
+  for (const p of pores) {
+    const gx = Math.floor(p.x / 6), gy = Math.floor(p.y / 6);
+    let ok = true;
+    for (let j = -1; j <= 1 && ok; j++) for (let i = -1; i <= 1 && ok; i++) for (const q of grid.get((gx + i) + "," + (gy + j)) || []) if (Math.hypot(q.x - p.x, q.y - p.y) < 6) { ok = false; break; }
+    if (ok) { kept.push(p); const k = gx + "," + gy; if (!grid.has(k)) grid.set(k, []); grid.get(k).push(p); }
+  }
+
+  // ridge spacing measured on the finished print: ridges crossed per unit length along many short lines
+  let area = 0; for (let i = 0; i < N; i++) area += inside[i];
+  const ridgeArea = bin.reduce((a, b) => a + b, 0);
+  return { bin, sk, minutiae, islands, lakes, ridgeCounts, pores: kept, skLen, area, ridgeArea };
+}
+</script>
+<script>/* Vingerafdruk: making the ridges look like a real print (ink on a card, a live scanner, or dusted powder)
+   and drawing the overlays that explain it. Rendered at twice the working size for smooth ridge edges. */
+"use strict";
+
+const STYLES = {
+  inkt: { name: "Inkt op kaart" },
+  scanner: { name: "Scanner" },
+  poeder: { name: "Poeder (sporen)" },
+};
+
+function paint(plan, v, an, style, scale = 2) {
+  const OW = W * scale, OH = H * scale;
+  const cv = document.createElement("canvas");
+  cv.width = OW; cv.height = OH;
+  const ctx = cv.getContext("2d");
+  const img = ctx.createImageData(OW, OH), d = img.data;
+  const r = rng(plan.seed * 7 + 3);
+  const nPress = noiseFieldR(r, 70), nEdge = noiseFieldR(r, 22), nInk = noiseFieldR(r, 5), nBlot = noiseFieldR(r, 26), nPaper = noiseFieldR(r, 3);
+  const bil = (a, x, y) => {
+    const x0 = Math.max(0, Math.min(W - 2, Math.floor(x))), y0 = Math.max(0, Math.min(H - 2, Math.floor(y))), tx = Math.min(1, Math.max(0, x - x0)), ty = Math.min(1, Math.max(0, y - y0)), i = y0 * W + x0;
+    return (a[i] * (1 - tx) + a[i + 1] * tx) * (1 - ty) + (a[i + W] * (1 - tx) + a[i + W + 1] * tx) * ty;
+  };
+  const ss = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
+  // pores as a small stamp map
+  const poreMap = new Float32Array(OW * OH);
+  for (const p of an.pores) {
+    const px = p.x * scale + scale / 2, py = p.y * scale + scale / 2, rad = (style === "scanner" ? 1.0 : 1.25) * p.s * scale * 0.75;
+    for (let y = Math.floor(py - rad - 1); y <= py + rad + 1; y++) for (let x = Math.floor(px - rad - 1); x <= px + rad + 1; x++) {
+      if (x < 0 || y < 0 || x >= OW || y >= OH) continue;
+      const k = 1 - ss(rad - 0.7, rad + 0.7, Math.hypot(x - px, y - py));
+      if (k > poreMap[y * OW + x]) poreMap[y * OW + x] = k;
+    }
+  }
+  for (let y = 0; y < OH; y++) for (let x = 0; x < OW; x++) {
+    const sx = (x + 0.5) / scale - 0.5, sy = (y + 0.5) / scale - 0.5;
+    const val = bil(v, sx, sy), rr = bil(plan.rad, sx, sy);
+    // pressure: firm in the middle, lighter towards the edge, with patches
+    const press = 0.6 + 0.32 * (1 - Math.pow(Math.min(1, rr), 3)) + 0.2 * nPress(sx, sy);
+    const thr = 0.22 - 0.6 * (press - 0.6);
+    let cov = ss(thr - 0.2, thr + 0.2, val);
+    const e = ss(1.0 + 0.03 * nEdge(sx, sy), 0.86 + 0.05 * nEdge(sx * 1.7, sy * 1.7), rr);
+    cov *= e * (1 - poreMap[y * OW + x] * 0.9);
+    let R, G, B;
+    if (style === "scanner") {
+      const k = Math.pow(cov, 0.9) * (0.9 + 0.1 * press);
+      R = G = B = 250 - 232 * k;
+    } else if (style === "poeder") {
+      const grain = 0.55 + 0.45 * (nInk(sx * 3.1, sy * 3.1) * 0.5 + 0.5);
+      const smear = 0.75 + 0.25 * nBlot(sx, sy);
+      const k = cov * grain * smear;
+      const bg = 34 + 6 * nPaper(sx, sy);
+      const speck = nInk(sx * 5.3 + 99, sy * 5.3) > 0.82 ? 0.25 * e : 0;
+      R = bg + (226 - bg) * Math.min(1, k + speck); G = bg + 2 + (220 - bg) * Math.min(1, k + speck); B = bg + 8 + (204 - bg) * Math.min(1, k + speck);
+    } else {
+      const ink = 0.78 + 0.22 * (nInk(sx, sy) * 0.5 + 0.5);
+      const blot = nBlot(sx, sy) > 0.55 ? 0.15 : 0;
+      const k = Math.min(1, cov * ink + blot * cov);
+      const pr = 244 + 5 * nPaper(sx, sy), pg = 239 + 5 * nPaper(sx, sy), pb = 226 + 5 * nPaper(sx, sy);
+      R = pr + (24 - pr) * k; G = pg + (24 - pg) * k; B = pb + (34 - pb) * k;
+    }
+    const o = (y * OW + x) * 4;
+    d[o] = R; d[o + 1] = G; d[o + 2] = B; d[o + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  if (style !== "scanner") { ctx.filter = "blur(0.6px)"; ctx.drawImage(cv, 0, 0); ctx.filter = "none"; }
+  return cv;
+}
+function noiseFieldR(r, cell) {
+  const gw = Math.ceil(W / cell) * 6 + 4, gh = Math.ceil(H / cell) * 6 + 4, g = new Float32Array(gw * gh);
+  for (let i = 0; i < g.length; i++) g[i] = r() * 2 - 1;
+  const s = (t) => t * t * (3 - 2 * t);
+  return (x, y) => {
+    const fx = Math.abs(x) / cell, fy = Math.abs(y) / cell, ix = Math.floor(fx), iy = Math.floor(fy), tx = s(fx - ix), ty = s(fy - iy);
+    const at = (i, j) => g[(j % gh) * gw + (i % gw)];
+    const a = at(ix, iy) + (at(ix + 1, iy) - at(ix, iy)) * tx, b = at(ix, iy + 1) + (at(ix + 1, iy + 1) - at(ix, iy + 1)) * tx;
+    return a + (b - a) * ty;
+  };
+}
+
+/* ---------- overlays (SVG in print coordinates) ---------- */
+const NS = "http://www.w3.org/2000/svg";
+const svgEl = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); return e; };
+function overlays(svg, plan, an, show) {
+  svg.replaceChildren();
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  if (show.veld) {
+    const g = svgEl("g", { class: "ov-veld" });
+    for (let y = 10; y < H; y += 18) for (let x = 10; x < W; x += 18) {
+      const i = y * W + x;
+      if (plan.rad[i] > 0.97) continue;
+      const th = 0.5 * Math.atan2(plan.sin2[i], plan.cos2[i]), c = Math.cos(th) * 6, s = Math.sin(th) * 6;
+      g.append(svgEl("line", { x1: x - c, y1: y - s, x2: x + c, y2: y + s }));
+    }
+    svg.append(g);
+  }
+  if (show.telling) for (const rc of an.ridgeCounts) {
+    const g = svgEl("g", { class: "ov-tel" });
+    g.append(svgEl("line", { x1: rc.core.x, y1: rc.core.y, x2: rc.delta.x, y2: rc.delta.y }));
+    const mx = (rc.core.x + rc.delta.x) / 2, my = (rc.core.y + rc.delta.y) / 2;
+    g.append(svgEl("rect", { x: mx - 13, y: my - 10, width: 26, height: 20, rx: 6 }));
+    const t = svgEl("text", { x: mx, y: my + 5 }); t.textContent = rc.count; g.append(t);
+    svg.append(g);
+  }
+  if (show.minutiae) {
+    const g = svgEl("g", { class: "ov-min" });
+    an.minutiae.forEach((m, k) => {
+      const tx = m.x + Math.cos(m.angle) * 11, ty = m.y + Math.sin(m.angle) * 11;
+      const a = svgEl("g", { class: "m " + (m.type === "einde" ? "einde" : "splitsing"), "data-k": "m" + k });
+      a.append(svgEl("line", { x1: m.x, y1: m.y, x2: tx, y2: ty }));
+      a.append(m.type === "einde" ? svgEl("circle", { cx: m.x, cy: m.y, r: 4.2 }) : svgEl("rect", { x: m.x - 4, y: m.y - 4, width: 8, height: 8 }));
+      a.append(svgEl("circle", { cx: m.x, cy: m.y, r: 11, class: "hit" }));
+      g.append(a);
+    });
+    an.islands.forEach((m, k) => { const a = svgEl("g", { class: "m eiland", "data-k": "i" + k }); a.append(svgEl("path", { d: `M${m.x} ${m.y - 6} L${m.x + 6} ${m.y} L${m.x} ${m.y + 6} L${m.x - 6} ${m.y} Z` })); a.append(svgEl("circle", { cx: m.x, cy: m.y, r: 11, class: "hit" })); g.append(a); });
+    an.lakes.forEach((m, k) => { const a = svgEl("g", { class: "m meer", "data-k": "l" + k }); a.append(svgEl("ellipse", { cx: m.x, cy: m.y, rx: 7, ry: 7 })); a.append(svgEl("circle", { cx: m.x, cy: m.y, r: 11, class: "hit" })); g.append(a); });
+    svg.append(g);
+  }
+  if (show.singulier) {
+    const g = svgEl("g", { class: "ov-sing" });
+    plan.cores.forEach((c, k) => { const a = svgEl("g", { class: "m kern", "data-k": "c" + k }); a.append(svgEl("circle", { cx: c.x, cy: c.y, r: 9 })); a.append(svgEl("circle", { cx: c.x, cy: c.y, r: 2.2, class: "dot" })); a.append(svgEl("circle", { cx: c.x, cy: c.y, r: 14, class: "hit" })); g.append(a); });
+    plan.deltas.forEach((dl, k) => { const a = svgEl("g", { class: "m delta", "data-k": "d" + k }); a.append(svgEl("path", { d: `M${dl.x} ${dl.y - 10} L${dl.x + 9} ${dl.y + 6} L${dl.x - 9} ${dl.y + 6} Z` })); a.append(svgEl("circle", { cx: dl.x, cy: dl.y, r: 14, class: "hit" })); g.append(a); });
+    svg.append(g);
+  }
+}
+</script>
+<script>/* Vingerafdruk: the app. Makes a print, explains what is in it, shows overlays, saves PNGs and ten-print cards. */
+"use strict";
+
+const $ = (s) => document.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v; else if (k === "html") e.innerHTML = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, ""); else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null) e.append(k.nodeType ? k : document.createTextNode(k));
+  return e;
+};
+const Bridge = window.VAApp || null;
+const MM = 25.4 / 500; // one pixel at 500 ppi, the usual resolution for fingerprints
+const nl = (x, d = 1) => x.toLocaleString("nl-NL", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+/* ---------- settings ---------- */
+const KEY = "vingerafdruk-instellingen";
+const S = Object.assign({ pattern: "auto", hand: "auto", finger: "auto", style: "inkt", minutiae: "normaal", veld: false, singulier: true, minutiaeOv: true, telling: true },
+  (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })());
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } };
+
+/* ---------- making a print ---------- */
+let cur = null, busy = false;
+// the growth leaves more forks than endings; real fingers have rather more endings, so cut some branches near their fork
+function balance(plan, v, an) {
+  const r = rng(plan.seed ^ 0x2545f491), out = Float32Array.from(v), P = plan.P0;
+  for (const m of an.minutiae) {
+    if (m.type !== "splitsing" || r() > 0.55) continue;
+    const s = r() < 0.5 ? 1 : -1, a = m.angle + s * 0.55;
+    const cx = m.x + Math.cos(a) * P * 0.85, cy = m.y + Math.sin(a) * P * 0.85, rad = P * 0.36;
+    for (let y = Math.floor(cy - rad); y <= cy + rad; y++) for (let x = Math.floor(cx - rad); x <= cx + rad; x++) {
+      if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      const d = Math.hypot(x - cx, y - cy);
+      if (d < rad) out[y * W + x] = Math.min(out[y * W + x], -0.6 * (1 - d / rad) - 0.2);
+    }
+  }
+  return out;
+}
+async function generate(opts, growCanvas, onStep) {
+  const plan = makePlan(opts);
+  let v = await Gabor.grow(plan, growCanvas, onStep);
+  let an = analyze(plan, v);
+  v = balance(plan, v, an);
+  an = analyze(plan, v);
+  return { plan, v, an };
+}
+async function newPrint(seed) {
+  if (busy) return;
+  busy = true;
+  $("#newBtn").disabled = true;
+  const opts = { seed: seed ?? Math.floor(Math.random() * 999999) + 1, pattern: S.pattern, hand: S.hand, finger: S.finger, minutiae: S.minutiae };
+  $("#seed").value = opts.seed;
+  const grow = $("#grow");
+  grow.hidden = false; $("#print").classList.add("growing");
+  $("#status").textContent = "Riffen groeien…";
+  try {
+    const res = await generate(opts, grow, (k, n) => { $("#status").textContent = `Riffen groeien… ${Math.round(k / n * 100)}%`; });
+    res.style = S.style;
+    res.canvas = paint(res.plan, res.v, res.an, S.style);
+    cur = res;
+    showPrint();
+    explain();
+    $("#status").textContent = Gabor.gpu ? "" : "Gemaakt zonder grafische versnelling";
+  } catch (e) { $("#status").textContent = "Mislukt: " + (e.message || e); }
+  grow.hidden = true; $("#print").classList.remove("growing");
+  busy = false;
+  $("#newBtn").disabled = false;
+}
+function showPrint() {
+  const holder = $("#img");
+  holder.replaceChildren(cur.canvas);
+  drawOverlays();
+}
+function drawOverlays() {
+  if (!cur) return;
+  overlays($("#ov"), cur.plan, cur.an, { veld: S.veld, singulier: S.singulier, minutiae: S.minutiaeOv, telling: S.telling });
+}
+function restyle(style) {
+  S.style = style; save();
+  if (!cur) return;
+  cur.canvas = paint(cur.plan, cur.v, cur.an, style);
+  cur.style = style;
+  showPrint();
+}
+
+/* ---------- explanation ---------- */
+const FINGER_NAME = { duim: "duim", wijsvinger: "wijsvinger", middelvinger: "middelvinger", ringvinger: "ringvinger", pink: "pink" };
+const handName = (h) => (h === "rechts" ? "rechter" : "linker");
+function patternTitle(p) {
+  if (p.pattern === "lusL" || p.pattern === "lusR") return `Lus (${p.loopKind})`;
+  return PATTERNS[p.pattern].name;
+}
+const TEXT = {
+  boog: "De riffen komen aan de ene kant binnen, buigen in het midden een beetje omhoog en lopen aan de andere kant weer weg. Er is geen kern en geen delta. Bogen zijn het zeldzaamste patroon: ongeveer 5% van alle vingers.",
+  tentboog: "Een boog waarvan de riffen in het midden steil omhoog worden geduwd, als door een tentstok. Bovenin zit een kern, vlak daaronder een delta. Tentbogen horen bij de bogen en zijn zeldzaam; je ziet ze het vaakst op wijsvingers.",
+  lus: "Riffen komen aan één kant binnen, maken een haarspeldbocht om de kern en gaan aan dezelfde kant weer naar buiten. Er is één kern en één delta; de delta ligt aan de kant tegenover de opening. Lussen zijn het gewoonste patroon: ongeveer 60 tot 65% van alle vingers.",
+  krul: "De riffen draaien in cirkels, ovalen of een spiraal rond het midden. Een krul heeft twee delta's, links en rechts onderin. Ongeveer 30 tot 35% van de vingers heeft een krul; op duimen en ringvingers zie je ze het vaakst.",
+  dubbel: "Twee lussen die om elkaar heen draaien, zoals de twee helften van een yin-yangteken. Er zijn twee kernen en twee delta's. In de klassieke indeling (Henry) valt de dubbele lus onder de krullen.",
+};
+const MIN_TEXT = {
+  einde: ["Rifeinde", "Een rif houdt gewoon op. Het streepje wijst de kant op waar de rif ophoudt."],
+  splitsing: ["Splitsing", "Eén rif splitst zich in twee (bifurcatie). Het streepje wijst de kant op waar de vork opengaat."],
+  punt: ["Punt", "Een stukje rif zo kort dat het een stip is."],
+  "korte rif": ["Korte rif", "Een los, kort stukje rif tussen de andere riffen (ook wel eilandje)."],
+  meertje: ["Meertje", "Een rif splitst zich en komt kort daarna weer samen. Het lege stukje ertussen heet een meertje (enclosure)."],
+  kern: ["Kern", "Het binnenste punt van de binnenste bocht van het patroon. Vanaf hier wordt geteld en gemeten."],
+  delta: ["Delta", "Hier komen riffen uit drie richtingen samen en ontstaat een driehoekje, zoals de Griekse letter Δ of een riviermonding."],
+};
+function explain() {
+  const { plan, an } = cur, p = plan;
+  const count = (t) => an.minutiae.filter((m) => m.type === t).length + an.islands.filter((m) => m.type === t).length + (t === "meertje" ? an.lakes.length : 0);
+  const sections = [];
+  const sec = (title, ...body) => sections.push(el("section", { class: "card" }, el("h2", {}, title), ...body));
+  const fingerTxt = `${handName(p.hand)} ${FINGER_NAME[p.finger]}`;
+
+  // pattern
+  const grp = p.pattern === "lusL" || p.pattern === "lusR" ? "lus" : p.pattern;
+  const pBody = [el("p", {}, TEXT[grp])];
+  if (grp === "lus") {
+    const side = p.pattern === "lusR" ? "rechts" : "links";
+    pBody.push(el("p", {}, `Deze lus opent naar ${side}. Op een afdruk van de ${handName(p.hand)}hand ligt de pinkkant ${p.hand === "rechts" ? "rechts" : "links"}, dus dit is een `,
+      el("b", {}, p.loopKind === "ulnair" ? "ulnaire lus" : "radiale lus"),
+      p.loopKind === "ulnair" ? ": hij opent naar de pinkkant, waar de ellepijp (ulna) ligt. Dat is verreweg de gewoonste soort." : ": hij opent naar de duimkant, waar het spaakbeen (radius) ligt. Radiale lussen zijn zeldzaam en komen vooral voor op wijsvingers."));
+  }
+  sec(`${patternTitle(p)} · ${fingerTxt}`, ...pBody);
+
+  // core and delta
+  const cd = [];
+  cd.push(el("p", {}, `Kernen: ${p.cores.length || "geen"}. Delta's: ${p.deltas.length || "geen"}. `, p.cores.length ? "De kern is het binnenste punt van het patroon, de delta het driehoekje waar riffen uit drie richtingen samenkomen." : "Een gewone boog heeft geen kern en geen delta; daarom is hij ook niet te tellen."));
+  if (an.ridgeCounts.length && (grp === "lus" || grp === "krul" || grp === "dubbel")) {
+    const rc = an.ridgeCounts.map((r) => r.count);
+    cd.push(el("p", {}, grp === "lus"
+      ? `Tussen kern en delta liggen ${rc[0]} riffen. Deze rijtelling (Galton) gebruikten politiediensten om lussen verder in te delen: je trekt een denkbeeldige lijn van delta naar kern en telt de riffen die hij kruist.`
+      : `Rijtelling van de kern naar de linker- en rechterdelta: ${rc.join(" en ")} riffen. Bij krullen werd in de Henry-indeling vooral gekeken hoe de rif vanaf de linkerdelta langs de rechterdelta loopt (binnen, buiten of erlangs).`));
+  } else if (grp === "tentboog") cd.push(el("p", {}, "Bij een tentboog liggen kern en delta vlak boven elkaar; er liggen (bijna) geen riffen tussen, dus een rijtelling heeft geen betekenis."));
+  sec("Kern en delta", ...cd);
+
+  // ridges
+  const period = p.P0 * MM, perCm = 10 / period;
+  const widthMM = (p.shape.a * 2) * MM, heightMM = (p.shape.bt + p.shape.bb) * MM;
+  sec("Riffen",
+    el("p", {}, `De riffen liggen gemiddeld ${nl(period, 2)} mm uit elkaar: zo'n ${Math.round(perCm)} riffen per centimeter. Bij volwassenen is dat meestal ongeveer 0,4 tot 0,5 mm; bij kinderen liggen ze dichter op elkaar. Rond de kern liggen ze in deze afdruk iets verder uit elkaar.`),
+    el("p", {}, `Het afgedrukte deel is ongeveer ${nl(widthMM, 0)} bij ${nl(heightMM, 0)} mm (bij 500 ppi, de gangbare resolutie voor vingerafdrukken). Riffen zijn verhoogde huidlijsten; ze ontstaan voor de geboorte, rond de tiende tot zestiende week van de zwangerschap, en blijven daarna hetzelfde.`));
+
+  // minutiae
+  const rows = [["einde", count("einde")], ["splitsing", count("splitsing")], ["punt", count("punt")], ["korte rif", count("korte rif")], ["meertje", count("meertje")]];
+  const total = rows.reduce((a, r) => a + r[1], 0);
+  const table = el("table", { class: "mt" }, ...rows.map(([t, n]) => el("tr", {}, el("td", {}, el("span", { class: "sym " + t.replace(" ", "-") })), el("td", {}, MIN_TEXT[t][0]), el("td", {}, String(n)), el("td", { class: "mut" }, MIN_TEXT[t][1]))),
+    el("tr", { class: "tot" }, el("td"), el("td", {}, "Totaal"), el("td", {}, String(total)), el("td")));
+  sec("Minutiae",
+    el("p", {}, "Minutiae zijn de plekken waar een rif ophoudt, splitst of iets anders doet. Patroon en rijtelling zeggen in welke groep een afdruk valt; de minutiae maken hem uniek. Zelfs eeneiige tweelingen hebben verschillende minutiae."),
+    table,
+    el("p", { class: "mut" }, "Rifeinden en splitsingen zijn veruit het gewoonst. Bij vergelijking kijkt een deskundige naar soort, plek en richting van de minutiae en hoe ze ten opzichte van elkaar liggen. Vroeger eisten veel landen een vast aantal overeenkomende punten (vaak twaalf); nu wordt meestal het geheel beoordeeld. Tik op een teken in de afdruk voor uitleg."));
+
+  // pores
+  const ridgeMM = an.skLen * MM;
+  sec("Poriën",
+    el("p", {}, `Op de riffen zitten ${an.pores.length} zweetporiën: gemiddeld één per ${nl(ridgeMM / Math.max(1, an.pores.length), 2)} mm rif. Ze zijn zichtbaar als witte stipjes in de inkt. Poriën, de vorm van de rifranden en kleine littekens heten het derde niveau van detail. De Franse criminoloog Edmond Locard vergeleek in 1912 al afdrukken op hun poriën (poroscopie); daarvoor is een scherpe afdruk met hoge resolutie nodig.`));
+
+  sec("Over deze afdruk",
+    el("p", {}, `Nummer ${p.seed}. Deze afdruk is door de app verzonnen en is van niemand. Eerst wordt een plan gemaakt: de vorm van de vingertop, het patroon met zijn kernen en delta's, de richting van de riffen (het model van Sherlock en Monro) en de rifafstand. Daarna groeien de riffen uit een paar willekeurige stipjes door ze telkens te filteren met een Gabor-filter dat de richting en afstand volgt; dat idee komt van het onderzoeksprogramma SFinGe. Waar twee groeiende rifsystemen elkaar ontmoeten, ontstaan vanzelf rifeinden en splitsingen. Tot slot zoekt de app de minutiae op zoals een programma voor vingerafdrukvergelijking dat doet.`),
+    el("p", { class: "mut" }, "Met hetzelfde nummer en dezelfde instellingen krijg je dezelfde afdruk."));
+  $("#explain").replaceChildren(...sections);
+}
+
+/* ---------- tapping a feature ---------- */
+$("#ov").addEventListener("click", (e) => {
+  const g = e.target.closest("[data-k]");
+  if (!g || !cur) { $("#tip").hidden = true; return; }
+  const k = g.dataset.k, kind = k[0], i = +k.slice(1);
+  let item, type;
+  if (kind === "m") { item = cur.an.minutiae[i]; type = item.type; }
+  else if (kind === "i") { item = cur.an.islands[i]; type = item.type; }
+  else if (kind === "l") { item = cur.an.lakes[i]; type = "meertje"; }
+  else if (kind === "c") { item = cur.plan.cores[i]; type = "kern"; }
+  else { item = cur.plan.deltas[i]; type = "delta"; }
+  const [title, text] = MIN_TEXT[type];
+  let extra = `Plaats: ${nl((item.x - W / 2) * MM, 1)} mm ${item.x < W / 2 ? "links" : "rechts"} van het midden, ${nl(Math.abs(item.y - H / 2) * MM, 1)} mm ${item.y < H / 2 ? "boven" : "onder"} het midden.`.replace("-", "");
+  if (item.angle !== undefined) extra += ` Richting: ${Math.round(((-item.angle * 180 / Math.PI) % 360 + 360) % 360)}°.`;
+  if (item.len && type === "korte rif") extra += ` Lengte: ${nl(item.len * MM, 1)} mm.`;
+  const tip = $("#tip");
+  tip.replaceChildren(el("b", {}, title), el("p", {}, text), el("p", { class: "mut" }, extra));
+  tip.hidden = false;
+  e.stopPropagation();
+});
+document.addEventListener("click", (e) => { if (!e.target.closest("#tip") && !e.target.closest("#ov [data-k]")) $("#tip").hidden = true; });
+
+/* ---------- saving ---------- */
+function saveCanvas(cv, name) {
+  cv.toBlob(async (b) => {
+    if (Bridge && Bridge.saveFile) {
+      const bytes = new Uint8Array(await b.arrayBuffer());
+      let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      Bridge.saveFile(name, "image/png", btoa(s));
+      return;
+    }
+    const a = el("a", { href: URL.createObjectURL(b), download: name });
+    document.body.append(a); a.click(); a.remove();
+  }, "image/png");
+}
+window.onSaved = (ok) => toast(ok ? "Opgeslagen" : "Niet opgeslagen");
+$("#saveBtn").onclick = () => {
+  if (!cur) return;
+  // with the overlays when they are on
+  const cv = document.createElement("canvas");
+  cv.width = cur.canvas.width; cv.height = cur.canvas.height;
+  const ctx = cv.getContext("2d");
+  ctx.drawImage(cur.canvas, 0, 0);
+  const svg = $("#ov").cloneNode(true);
+  svg.setAttribute("width", cv.width); svg.setAttribute("height", cv.height);
+  const style = el("style"); style.textContent = OV_CSS; svg.prepend(style);
+  svg.querySelectorAll(".hit").forEach((h) => h.remove());
+  const img = new Image();
+  img.onload = () => { ctx.drawImage(img, 0, 0, cv.width, cv.height); saveCanvas(cv, `vingerafdruk-${cur.plan.seed}.png`); };
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(svg));
+};
+let toastT = 0;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 2600); }
+
+/* ---------- ten-print card ---------- */
+$("#cardBtn").onclick = async () => {
+  if (busy) return;
+  busy = true;
+  const dlg = $("#card");
+  const body = $("#cardBody");
+  body.replaceChildren(el("p", { class: "mut", id: "cardStatus" }, "Tien afdrukken maken…"));
+  dlg.showModal();
+  const base = Math.floor(Math.random() * 99999) * 10 + 1;
+  const SC = 0.62, bw = W * SC + 24, bh = H * SC + 54;
+  const cv = document.createElement("canvas");
+  cv.width = bw * 5 + 40; cv.height = bh * 2 + 130;
+  const ctx = cv.getContext("2d");
+  ctx.fillStyle = "#f6f1e4"; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = "#222"; ctx.font = "600 26px 'IBM Plex Sans', sans-serif";
+  ctx.fillText("Tienvingerkaart", 22, 42);
+  ctx.font = "15px 'IBM Plex Sans', sans-serif"; ctx.fillStyle = "#555";
+  ctx.fillText(`Verzonnen afdrukken, gemaakt door Vingerafdruk · nummers ${base} t/m ${base + 9}`, 22, 68);
+  const list = [];
+  let n = 0;
+  for (const hand of ["rechts", "links"]) for (const finger of FINGERS) {
+    const res = await generate({ seed: base + n, pattern: "auto", hand, finger, minutiae: S.minutiae }, $("#grow"));
+    const pic = paint(res.plan, res.v, res.an, S.style, 1);
+    const col = n % 5, row = Math.floor(n / 5), x = 20 + col * bw, y = 90 + row * bh;
+    ctx.strokeStyle = "#333"; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, bw - 8, bh - 8);
+    ctx.fillStyle = "#222"; ctx.font = "600 15px 'IBM Plex Sans', sans-serif";
+    ctx.fillText(`${n + 1}. ${hand === "rechts" ? "R" : "L"}. ${finger}`, x + 10, y + 22);
+    ctx.drawImage(pic, x + 8, y + 30, W * SC, H * SC);
+    ctx.fillStyle = "#555"; ctx.font = "13px 'IBM Plex Sans', sans-serif";
+    ctx.fillText(patternTitle(res.plan), x + 10, y + bh - 16);
+    list.push(res.plan);
+    n++;
+    $("#cardStatus").textContent = `Tien afdrukken maken… ${n}/10`;
+  }
+  const counts = {};
+  for (const p of list) { const t = patternTitle(p).replace(/ \(.*/, ""); counts[t] = (counts[t] || 0) + 1; }
+  cv.style.width = "100%";
+  body.replaceChildren(cv, el("p", { class: "mut" }, "Op deze kaart: " + Object.entries(counts).map(([k, v]) => `${v}× ${k.toLowerCase()}`).join(", ") + ". Het patroon per vinger is gekozen met kansen die per vinger verschillen, zoals bij echte handen: lussen het meest, krullen vaak op duimen en ringvingers, bogen en radiale lussen vooral op wijsvingers."));
+  $("#cardSave").onclick = () => saveCanvas(cv, `tienvingerkaart-${base}.png`);
+  busy = false;
+};
+$("#cardClose").onclick = () => $("#card").close();
+
+/* ---------- controls ---------- */
+function chips(id, options, get, set) {
+  const box = $(id);
+  box.replaceChildren(...options.map(([v, label]) => el("button", { class: get() === v ? "on" : "", onclick: () => { set(v); save(); chips(id, options, get, set); } }, label)));
+}
+function selectBox(id, options, get, set) {
+  const s = $(id);
+  s.replaceChildren(...options.map(([v, label]) => el("option", { value: v, selected: get() === v }, label)));
+  s.onchange = () => { set(s.value); save(); };
+}
+function buildControls() {
+  selectBox("#patSel", [["auto", "Willekeurig (past bij de vinger)"], ["boog", "Boog"], ["tentboog", "Tentboog"], ["ulnair", "Lus, ulnair (naar de pink)"], ["radiaal", "Lus, radiaal (naar de duim)"], ["krul", "Krul"], ["dubbel", "Dubbele lus"]], () => S.pattern, (v) => (S.pattern = v));
+  selectBox("#handSel", [["auto", "Elke hand"], ["rechts", "Rechterhand"], ["links", "Linkerhand"]], () => S.hand, (v) => (S.hand = v));
+  selectBox("#fingerSel", [["auto", "Elke vinger"], ...FINGERS.map((f) => [f, f[0].toUpperCase() + f.slice(1)])], () => S.finger, (v) => (S.finger = v));
+  chips("#styleChips", Object.entries(STYLES).map(([k, s]) => [k, s.name]), () => S.style, (v) => restyle(v));
+  chips("#minChips", [["weinig", "Weinig"], ["normaal", "Normaal"], ["veel", "Veel"]], () => S.minutiae, (v) => (S.minutiae = v));
+  const ov = $("#ovChips");
+  const tog = (label, key) => el("button", { class: S[key] ? "on" : "", onclick: (e) => { S[key] = !S[key]; save(); e.currentTarget.classList.toggle("on", S[key]); drawOverlays(); } }, label);
+  ov.replaceChildren(tog("Kern en delta", "singulier"), tog("Minutiae", "minutiaeOv"), tog("Rijtelling", "telling"), tog("Richting van de riffen", "veld"));
+}
+$("#newBtn").onclick = () => newPrint();
+$("#seedGo").onclick = () => { const n = parseInt($("#seed").value, 10); if (n > 0) newPrint(n); };
+$("#seed").addEventListener("keydown", (e) => { if (e.key === "Enter") $("#seedGo").click(); });
+window.atlasBack = () => {
+  if ($("#card").open) { $("#card").close(); return true; }
+  if (!$("#tip").hidden) { $("#tip").hidden = true; return true; }
+  return false;
+};
+
+let OV_CSS = "";
+(async () => {
+  OV_CSS = [...document.styleSheets].flatMap((s) => { try { return [...s.cssRules]; } catch (e) { return []; } }).map((r) => r.cssText).filter((t) => /\.ov-|\.m |\.hit|\.einde|\.splitsing|\.eiland|\.meer|\.kern|\.delta/.test(t)).join("\n");
+  buildControls();
+  await new Promise((r) => requestAnimationFrame(r));
+  newPrint();
+})();
+</script>
+</body>
+</html>

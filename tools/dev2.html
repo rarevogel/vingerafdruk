@@ -1,0 +1,24 @@
+<!doctype html><html><head><style>
+body{margin:0;background:#666;font:13px sans-serif} .box{position:relative;display:inline-block;margin:4px;width:400px;height:520px}
+.box canvas{width:400px;height:520px;display:block} .box svg{position:absolute;inset:0;width:400px;height:520px}
+.ov-veld line{stroke:#0a8;stroke-width:1} .ov-min .einde *{stroke:#e33;fill:none;stroke-width:1.6} .ov-min .splitsing *{stroke:#26f;fill:none;stroke-width:1.6}
+.eiland path{fill:none;stroke:#0b0;stroke-width:1.6} .meer ellipse{fill:none;stroke:#a0f;stroke-width:1.6} .hit{fill:transparent!important;stroke:none!important}
+.ov-sing .kern circle{stroke:#f0f;fill:none;stroke-width:2} .ov-sing .delta path{stroke:#f80;fill:none;stroke-width:2} .ov-tel line{stroke:#000;stroke-dasharray:4 3;stroke-width:1.5} .ov-tel rect{fill:#fff} .ov-tel text{text-anchor:middle;font:bold 13px sans-serif}
+</style></head><body><canvas id="gl" width="400" height="520" style="display:none"></canvas><div id="out"></div>
+<script src="../src/field.js"></script><script src="../src/gabor.js"></script><script src="../src/analyze.js"></script><script src="../src/paint.js"></script>
+<script>
+window.run = async (jobs) => {
+  for (const [pt, seed, style, ov] of jobs) {
+    const plan = makePlan({ seed, pattern: pt, hand: "rechts", finger: "wijsvinger", minutiae: "normaal" });
+    const v = await Gabor.grow(plan, document.getElementById("gl"));
+    const t = performance.now(); const an = analyze(plan, v); const t2 = performance.now();
+    const cv = paint(plan, v, an, style); const t3 = performance.now();
+    const box = document.createElement("div"); box.className = "box"; box.append(cv);
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg"); box.append(svg);
+    if (ov) overlays(svg, plan, an, { veld: false, minutiae: true, singulier: true, telling: true });
+    document.getElementById("out").append(box);
+    const cnt = {}; for (const m of an.minutiae) cnt[m.type] = (cnt[m.type] || 0) + 1; for (const m of an.islands) cnt[m.type] = (cnt[m.type] || 0) + 1; cnt.meertje = an.lakes.length;
+    console.log(pt, style, JSON.stringify(cnt), "pores", an.pores.length, "rc", an.ridgeCounts.map(r => r.count).join(","), "analyze", Math.round(t2 - t), "paint", Math.round(t3 - t2));
+  }
+};
+</script></body></html>

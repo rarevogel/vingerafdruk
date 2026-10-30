@@ -1,0 +1,19 @@
+<!doctype html><html><body style="margin:0;background:#888">
+<canvas id="gl" width="400" height="520" style="display:none"></canvas><div id="out"></div>
+<script src="../src/field.js"></script><script src="../src/gabor.js"></script>
+<script>
+window.run = async (patterns, seed) => {
+  for (const pt of patterns) {
+    const plan = makePlan({ seed: seed++, pattern: pt, hand: "rechts", finger: "wijsvinger", minutiae: "normaal" });
+    const v = await Gabor.grow(plan, document.getElementById("gl"));
+    const c = document.createElement("canvas"); c.width = W; c.height = H; c.style.margin = "4px";
+    const ctx = c.getContext("2d"), img = ctx.createImageData(W, H);
+    for (let i = 0; i < W * H; i++) { const m = plan.rad[i] < 1 ? 1 : 0.15; const g = (v[i] > 0 ? 30 : 235) * m + 255 * (1 - m) * 0.6; img.data.set([g, g, g, 255], i * 4); }
+    ctx.putImageData(img, 0, 0);
+    ctx.fillStyle = "red"; for (const p of plan.cores) ctx.fillRect(p.x - 4, p.y - 4, 8, 8);
+    ctx.fillStyle = "blue"; for (const p of plan.deltas) ctx.fillRect(p.x - 4, p.y - 4, 8, 8);
+    ctx.fillStyle = "#000"; ctx.font = "16px sans-serif"; ctx.fillText(pt + " gpu=" + Gabor.gpu, 8, 18);
+    document.getElementById("out").append(c);
+  }
+};
+</script></body></html>
